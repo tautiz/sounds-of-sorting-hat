@@ -6,19 +6,18 @@ class HogwartsAudioPlayer {
         this.currentGainNode = null;
         this.analyser = null;
         this.visualizer = document.querySelector('.audio-visualizer');
-        this.houseCounters = {
+        this.houseAudios = {
+            gryffindor: [],
+            slytherin: [],
+            ravenclaw: [],
+            hufflepuff: []
+        };
+        this.currentIndex = {
             gryffindor: 0,
             slytherin: 0,
             ravenclaw: 0,
             hufflepuff: 0
         };
-        this.houseAudioCounts = {
-            gryffindor: 1,
-            slytherin: 1,
-            ravenclaw: 1,
-            hufflepuff: 1
-        };
-        this.audioFiles = [];
         this.isInitialized = false;
         this.pendingHouseSound = null;
         this.initializeApp();
@@ -72,7 +71,7 @@ class HogwartsAudioPlayer {
         const house = urlParams.get('house');
 
         // If a house is specified and it's valid, play its sound
-        if (house && this.houseCounters.hasOwnProperty(house.toLowerCase())) {
+        if (house && this.houseAudios.hasOwnProperty(house.toLowerCase())) {
             // We'll play the sound once the app is initialized
             this.pendingHouseSound = house.toLowerCase();
         }
@@ -160,29 +159,51 @@ class HogwartsAudioPlayer {
     }
 
     async detectAudioFiles() {
-        for (const house of Object.keys(this.houseCounters)) {
-            let count = 1;
+        const houses = ['gryffindor', 'slytherin', 'ravenclaw', 'hufflepuff'];
+        
+        for (const house of houses) {
+            // Reset the audio files array for this house
+            this.houseAudios[house] = [];
+            
+            // Try different numbered variations
+            let fileIndex = 1;
             while (true) {
+                const numberedPath = `sounds/${house}${fileIndex}.mp3`;
                 try {
-                    const response = await fetch(`sounds/${house}${count}.mp3`, { method: 'HEAD' });
+                    const response = await fetch(numberedPath, { method: 'HEAD' });
                     if (response.ok) {
-                        this.audioFiles.push(`sounds/${house}${count}.mp3`);
-                        count++;
+                        this.houseAudios[house].push(numberedPath);
+                        fileIndex++;
                     } else {
                         break;
                     }
-                } catch {
+                } catch (error) {
                     break;
                 }
             }
             
-            // If no numbered files found, add the base file
-            if (count === 1) {
-                this.audioFiles.push(`sounds/${house}.mp3`);
+            // Also try the base filename without number
+            const basePath = `sounds/${house}.mp3`;
+            try {
+                const response = await fetch(basePath, { method: 'HEAD' });
+                if (response.ok) {
+                    this.houseAudios[house].push(basePath);
+                }
+            } catch (error) {
+                console.warn(`Base audio file for ${house} not found`);
             }
             
-            this.houseAudioCounts[house] = Math.max(1, count - 1);
-            console.log(`Detected ${this.houseAudioCounts[house]} audio files for ${house}`);
+            // Shuffle the array to randomize playback order
+            this.shuffleArray(this.houseAudios[house]);
+            
+            console.log(`Found ${this.houseAudios[house].length} audio files for ${house}`);
+        }
+    }
+
+    shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
         }
     }
 
@@ -192,26 +213,37 @@ class HogwartsAudioPlayer {
             return;
         }
 
+        const audioFiles = Object.values(this.houseAudios).flat();
         navigator.serviceWorker.controller.postMessage({
             type: 'CACHE_AUDIO_FILES',
-            files: this.audioFiles
+            files: audioFiles
         });
     }
 
     getNextAudioFile(house) {
-        const totalFiles = this.houseAudioCounts[house];
-        
-        if (totalFiles === 1) {
-            return `sounds/${house}.mp3`;
+        const audioFiles = this.houseAudios[house];
+        if (!audioFiles || audioFiles.length === 0) {
+            console.error(`No audio files found for ${house}`);
+            return null;
         }
 
-        this.houseCounters[house] = (this.houseCounters[house] % totalFiles) + 1;
-        return `sounds/${house}${this.houseCounters[house]}.mp3`;
+        // Get the next file and increment the index
+        const file = audioFiles[this.currentIndex[house]];
+        
+        // Increment and wrap around if needed
+        this.currentIndex[house] = (this.currentIndex[house] + 1) % audioFiles.length;
+        
+        // If we're back at the beginning, reshuffle for next round
+        if (this.currentIndex[house] === 0) {
+            this.shuffleArray(audioFiles);
+        }
+        
+        return file;
     }
 
     async playHouseSound(house) {
         const audioPath = this.getNextAudioFile(house);
-
+        console.log('Playing audio:', audioPath);
         try {
             // Stop current audio if playing
             if (this.currentAudio) {
