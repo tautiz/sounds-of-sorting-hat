@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hogwarts Houses Screenshot Template</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .house {
+            aspect-ratio: 1;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .gryffindor { background-color: #740001; }
+        .slytherin { background-color: #1a472a; }
+        .ravenclaw { background-color: #0e1a40; }
+        .hufflepuff { background-color: #ecb939; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Hogwarts Houses Soundboard</h1>
+        <div class="grid">
+            <div class="house gryffindor">Gryffindor</div>
+            <div class="house slytherin">Slytherin</div>
+            <div class="house ravenclaw">Ravenclaw</div>
+            <div class="house hufflepuff">Hufflepuff</div>
+        </div>
+    </div>
+</body>
+</html>

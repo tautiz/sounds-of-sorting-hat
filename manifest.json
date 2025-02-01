@@ -1,23 +1,59 @@
 {
+    "id": "/",
     "name": "Hogwarts Houses Soundboard",
     "short_name": "Hogwarts",
     "description": "Play sounds of Hogwarts houses",
     "start_url": "/",
+    "scope": "/",
     "display": "standalone",
+    "display_override": ["window-controls-overlay"],
+    "theme_window_controls_overlay": {
+        "color": "#1a1a1a"
+    },
+    "orientation": "any",
     "background_color": "#1a1a1a",
     "theme_color": "#000000",
+    "protocol_handlers": [
+        {
+            "protocol": "web+hogwarts",
+            "url": "/?house=%s"
+        }
+    ],
     "icons": [
+        {
+            "src": "images/icon-144x144.png",
+            "sizes": "144x144",
+            "type": "image/png",
+            "purpose": "any"
+        },
         {
             "src": "images/icon-192x192.png",
             "sizes": "192x192",
             "type": "image/png",
-            "purpose": "any maskable"
+            "purpose": "any"
         },
         {
             "src": "images/icon-512x512.png",
             "sizes": "512x512",
             "type": "image/png",
-            "purpose": "any maskable"
+            "purpose": "any"
         }
-    ]
+    ],
+    "screenshots": [
+        {
+            "src": "images/screenshot-desktop.png",
+            "sizes": "1920x1080",
+            "type": "image/png",
+            "form_factor": "wide",
+            "label": "Hogwarts Houses Soundboard Desktop View"
+        },
+        {
+            "src": "images/screenshot-mobile.png",
+            "sizes": "1080x1920",
+            "type": "image/png",
+            "label": "Hogwarts Houses Soundboard Mobile View"
+        }
+    ],
+    "categories": ["entertainment", "education"],
+    "prefer_related_applications": false
 }

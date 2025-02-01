@@ -1,0 +1,15 @@
+{
+    "name": "hogwarts-sounds",
+    "version": "1.0.0",
+    "description": "Hogwarts Houses Soundboard PWA",
+    "main": "server.js",
+    "scripts": {
+        "start": "node server.js",
+        "generate-cert": "openssl req -nodes -new -x509 -keyout server.key -out server.cert -subj '/CN=localhost'",
+        "generate-images": "node generate-images.js"
+    },
+    "dependencies": {
+        "express": "^4.18.2",
+        "sharp": "^0.32.6"
+    }
+}

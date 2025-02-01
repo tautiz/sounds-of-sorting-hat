@@ -77,6 +77,32 @@ h1 {
     background-color: #ecb939;
 }
 
+.house-btn.loading {
+    opacity: 0.7;
+    cursor: wait;
+    position: relative;
+}
+
+.house-btn.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 30px;
+    height: 30px;
+    margin: -15px 0 0 -15px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: loading-spinner 1s linear infinite;
+}
+
+@keyframes loading-spinner {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
 /* Hover effects only on devices that support hover */
 @media (hover: hover) {
     .house-btn:hover {
@@ -84,3 +110,65 @@ h1 {
         z-index: 1;
     }
 }
+
+@media (display-mode: window-controls-overlay) {
+    .grid {
+        padding-top: env(titlebar-area-height, 0px);
+    }
+}
+
+/* Ensure the app works well with the window controls overlay */
+@supports (top: env(titlebar-area-height)) {
+    body {
+        padding-top: env(titlebar-area-height, 0px);
+    }
+}
+
+.audio-visualizer {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(8px);
+    border-radius: 20px;
+    padding: 10px 20px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.audio-visualizer.active {
+    opacity: 1;
+}
+
+.visualizer-bars {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: 30px;
+}
+
+.bar {
+    width: 4px;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 2px;
+    transform-origin: bottom;
+}
+
+@keyframes barAnimation {
+    0%, 100% { transform: scaleY(0.3); }
+    50% { transform: scaleY(1); }
+}
+
+.audio-visualizer.active .bar {
+    animation: barAnimation 1s ease-in-out infinite;
+}
+
+.audio-visualizer.active .bar:nth-child(1) { animation-delay: 0.0s; }
+.audio-visualizer.active .bar:nth-child(2) { animation-delay: 0.2s; }
+.audio-visualizer.active .bar:nth-child(3) { animation-delay: 0.4s; }
+.audio-visualizer.active .bar:nth-child(4) { animation-delay: 0.6s; }
+.audio-visualizer.active .bar:nth-child(5) { animation-delay: 0.8s; }
