@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="ScreenOrientation" content="autoRotate:disabled">
     <title>Hogwarts Houses Soundboard</title>
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="styles.css">
@@ -11,15 +12,25 @@
 </head>
 <body>
     <div class="audio-visualizer">
-        <div class="visualizer-bars">
-            <div class="bar"></div>
-            <div class="bar"></div>
-            <div class="bar"></div>
-            <div class="bar"></div>
-            <div class="bar"></div>
+        <div class="visualizer-container">
+            <div class="visualizer-bars">
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+            </div>
+            <div class="progress-container">
+                <div class="progress-bar"></div>
+            </div>
+            <div class="time-display">0:00 / 0:00</div>
+            <div class="stop-hint">Click to stop playback</div>
         </div>
     </div>
-    <div class="grid button-container">
+    <button id="sortingHatButton" class="sorting-hat-button">
+        <img src="images/hogwarts.png" alt="Hogwarts Sorting Hat">
+    </button>
+    <div class="button-container">
         <button class="house-btn gryffindor" data-house="gryffindor">
             <img src="images/gryffindor.png" alt="Gryffindor">
         </button>

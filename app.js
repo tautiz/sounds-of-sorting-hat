@@ -5,7 +5,17 @@ class HogwartsAudioPlayer {
         this.currentSource = null;
         this.currentGainNode = null;
         this.analyser = null;
+        this.isPlayingHistory = false;
+        this.isAudioPlaying = false;
+        this.progressUpdateInterval = null;
+        
+        // DOM Elements
         this.visualizer = document.querySelector('.audio-visualizer');
+        this.progressBar = document.querySelector('.progress-bar');
+        this.timeDisplay = document.querySelector('.time-display');
+        this.sortingHatButton = document.getElementById('sortingHatButton');
+        this.houseButtons = document.querySelectorAll('.house-btn');
+        
         this.houseAudios = {
             gryffindor: [],
             slytherin: [],
@@ -18,13 +28,251 @@ class HogwartsAudioPlayer {
             ravenclaw: 0,
             hufflepuff: 0
         };
-        this.isInitialized = false;
-        this.pendingHouseSound = null;
+        
         this.initializeApp();
+        this.setupEventListeners();
+    }
+
+    setupEventListeners() {
+        // Debounced click handler for visualizer
+        let clickTimeout;
+        this.visualizer.addEventListener('click', () => {
+            if (clickTimeout) {
+                clearTimeout(clickTimeout);
+            }
+            clickTimeout = setTimeout(() => {
+                if (this.isAudioPlaying) {
+                    this.stopCurrentAudio();
+                }
+            }, 200);
+        });
+
+        // Setup house button click handlers
+        this.houseButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                if (!this.isAudioPlaying) {
+                    const house = button.dataset.house;
+                    this.playHouseSound(house);
+                }
+            });
+        });
+
+        // Setup sorting hat button click handler
+        this.sortingHatButton.addEventListener('click', () => {
+            if (!this.isAudioPlaying) {
+                this.playSortingHatHistory();
+            }
+        });
+    }
+
+    disableControls() {
+        this.houseButtons.forEach(button => {
+            button.classList.add('disabled');
+        });
+        if (this.sortingHatButton) {
+            this.sortingHatButton.classList.add('disabled');
+        }
+        this.isAudioPlaying = true;
+    }
+
+    enableControls() {
+        this.houseButtons.forEach(button => {
+            button.classList.remove('disabled');
+        });
+        if (this.sortingHatButton && !localStorage.getItem('hasHeardHistory')) {
+            this.sortingHatButton.classList.remove('disabled');
+        }
+        this.isAudioPlaying = false;
+    }
+
+    formatTime(seconds) {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = Math.floor(seconds % 60);
+        return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+    }
+
+    updateProgress() {
+        if (this.currentAudio && !this.currentAudio.paused) {
+            const currentTime = this.currentAudio.currentTime;
+            const duration = this.currentAudio.duration;
+            const progress = (currentTime / duration) * 100;
+            
+            this.progressBar.style.width = `${progress}%`;
+            this.timeDisplay.textContent = `${this.formatTime(currentTime)} / ${this.formatTime(duration)}`;
+        }
+    }
+
+    startProgressTracking() {
+        if (this.progressUpdateInterval) {
+            clearInterval(this.progressUpdateInterval);
+        }
+        this.progressUpdateInterval = setInterval(() => {
+            this.updateProgress();
+        }, 100);
+    }
+
+    stopProgressTracking() {
+        if (this.progressUpdateInterval) {
+            clearInterval(this.progressUpdateInterval);
+            this.progressUpdateInterval = null;
+        }
+        this.progressBar.style.width = '0%';
+        this.timeDisplay.textContent = '0:00 / 0:00';
+    }
+
+    async playSortingHatHistory() {
+        if (this.isAudioPlaying) return;
+        
+        try {
+            await this.stopCurrentAudio();
+            this.disableControls();
+
+            const audio = new Audio('sounds/Kepures_istorija2.mp3');
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const source = audioContext.createMediaElementSource(audio);
+            const gainNode = audioContext.createGain();
+            const analyser = audioContext.createAnalyser();
+            
+            analyser.fftSize = 32;
+            analyser.smoothingTimeConstant = 0.8;
+            
+            source.connect(analyser);
+            analyser.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            this.currentAudio = audio;
+            this.currentAudioContext = audioContext;
+            this.currentSource = source;
+            this.currentGainNode = gainNode;
+            this.analyser = analyser;
+            
+            this.visualizer.classList.add('active');
+            this.isPlayingHistory = true;
+
+            await audio.play();
+            this.startProgressTracking();
+            this.updateVisualization();
+
+            audio.addEventListener('ended', () => {
+                this.isPlayingHistory = false;
+                this.sortingHatButton.classList.add('hidden');
+                localStorage.setItem('hasHeardHistory', 'true');
+                this.visualizer.classList.remove('active');
+                this.enableControls();
+                this.stopProgressTracking();
+            });
+
+        } catch (error) {
+            console.error('Error playing Sorting Hat history:', error);
+            this.isPlayingHistory = false;
+            this.enableControls();
+            this.stopProgressTracking();
+        }
+    }
+
+    async stopCurrentAudio() {
+        if (this.currentAudio) {
+            this.visualizer.classList.remove('active');
+            
+            if (!this.currentGainNode) {
+                this.currentGainNode = this.currentAudioContext.createGain();
+                if (this.currentSource) {
+                    this.currentSource.disconnect();
+                    this.currentSource.connect(this.currentGainNode);
+                    this.currentGainNode.connect(this.currentAudioContext.destination);
+                }
+            }
+
+            this.currentGainNode.gain.setValueAtTime(this.currentGainNode.gain.value, this.currentAudioContext.currentTime);
+            this.currentGainNode.gain.linearRampToValueAtTime(0, this.currentAudioContext.currentTime + 0.5);
+
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            if (this.currentAudio) {
+                this.currentAudio.pause();
+                this.currentAudio.currentTime = 0;
+            }
+            if (this.currentSource) {
+                this.currentSource.disconnect();
+            }
+            if (this.currentGainNode) {
+                this.currentGainNode.disconnect();
+            }
+            if (this.analyser) {
+                this.analyser.disconnect();
+            }
+
+            this.stopProgressTracking();
+            this.enableControls();
+            
+            this.currentSource = null;
+            this.currentGainNode = null;
+            this.currentAudio = null;
+            this.analyser = null;
+        }
+    }
+
+    async playHouseSound(house) {
+        if (this.isAudioPlaying) {
+            console.log('Cannot play house sound while audio is playing');
+            return;
+        }
+
+        const audioPath = this.getNextAudioFile(house);
+        console.log('Playing audio:', audioPath);
+        
+        try {
+            await this.stopCurrentAudio();
+            this.disableControls();
+
+            const audio = new Audio(audioPath);
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const source = audioContext.createMediaElementSource(audio);
+            const gainNode = audioContext.createGain();
+            const analyser = audioContext.createAnalyser();
+            
+            analyser.fftSize = 32;
+            analyser.smoothingTimeConstant = 0.8;
+            
+            source.connect(analyser);
+            analyser.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            this.currentAudio = audio;
+            this.currentAudioContext = audioContext;
+            this.currentSource = source;
+            this.currentGainNode = gainNode;
+            this.analyser = analyser;
+            
+            gainNode.gain.setValueAtTime(1, audioContext.currentTime);
+            
+            this.visualizer.classList.add('active');
+            
+            await audio.play();
+            this.startProgressTracking();
+            this.updateVisualization();
+
+            audio.addEventListener('ended', () => {
+                this.stopCurrentAudio();
+            });
+        } catch (error) {
+            console.error(`Error playing ${house} sound:`, error);
+            this.enableControls();
+            this.stopProgressTracking();
+        }
     }
 
     async initializeApp() {
         try {
+            // Lock screen orientation to portrait on mobile devices
+            if (window.screen && window.screen.orientation) {
+                try {
+                    await window.screen.orientation.lock('portrait');
+                } catch (e) {
+                    console.log('Orientation lock not supported or not allowed');
+                }
+            }
+
             // Handle protocol launch
             this.handleProtocolLaunch();
 
@@ -47,7 +295,7 @@ class HogwartsAudioPlayer {
             await this.detectAudioFiles();
             
             // Setup UI
-            this.setupEventListeners();
+            this.setupUI();
             
             // Cache files if service worker is ready
             if (registration && registration.active) {
@@ -80,7 +328,7 @@ class HogwartsAudioPlayer {
     initializeWithoutServiceWorker() {
         this.detectAudioFiles()
             .then(() => {
-                this.setupEventListeners();
+                this.setupUI();
                 this.updateUIStatus('ready');
                 this.isInitialized = true;
                 // Play pending house sound if exists
@@ -147,7 +395,7 @@ class HogwartsAudioPlayer {
         });
     }
 
-    setupEventListeners() {
+    setupUI() {
         const buttons = document.querySelectorAll('.house-btn');
         buttons.forEach(button => {
             button.addEventListener('click', () => {
@@ -180,17 +428,6 @@ class HogwartsAudioPlayer {
                 } catch (error) {
                     break;
                 }
-            }
-            
-            // Also try the base filename without number
-            const basePath = `sounds/${house}.mp3`;
-            try {
-                const response = await fetch(basePath, { method: 'HEAD' });
-                if (response.ok) {
-                    this.houseAudios[house].push(basePath);
-                }
-            } catch (error) {
-                console.warn(`Base audio file for ${house} not found`);
             }
             
             // Shuffle the array to randomize playback order
@@ -239,90 +476,6 @@ class HogwartsAudioPlayer {
         }
         
         return file;
-    }
-
-    async playHouseSound(house) {
-        const audioPath = this.getNextAudioFile(house);
-        console.log('Playing audio:', audioPath);
-        try {
-            // Stop current audio if playing
-            if (this.currentAudio) {
-                // Hide visualizer
-                this.visualizer.classList.remove('active');
-                
-                // Create a gain node for fade out if not exists
-                if (!this.currentGainNode) {
-                    this.currentGainNode = this.currentAudioContext.createGain();
-                    if (this.currentSource) {
-                        this.currentSource.disconnect();
-                        this.currentSource.connect(this.currentGainNode);
-                        this.currentGainNode.connect(this.currentAudioContext.destination);
-                    }
-                }
-
-                // Fade out over 500ms
-                this.currentGainNode.gain.setValueAtTime(this.currentGainNode.gain.value, this.currentAudioContext.currentTime);
-                this.currentGainNode.gain.linearRampToValueAtTime(0, this.currentAudioContext.currentTime + 0.5);
-
-                // Clean up after fade out
-                setTimeout(() => {
-                    if (this.currentAudio) {
-                        this.currentAudio.pause();
-                        this.currentAudio.currentTime = 0;
-                    }
-                    if (this.currentSource) {
-                        this.currentSource.disconnect();
-                    }
-                    if (this.currentGainNode) {
-                        this.currentGainNode.disconnect();
-                    }
-                    if (this.analyser) {
-                        this.analyser.disconnect();
-                    }
-                    this.currentSource = null;
-                    this.currentGainNode = null;
-                    this.currentAudio = null;
-                    this.analyser = null;
-                }, 500);
-            }
-
-            // Create new audio context and elements
-            const audio = new Audio(audioPath);
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const source = audioContext.createMediaElementSource(audio);
-            const gainNode = audioContext.createGain();
-            const analyser = audioContext.createAnalyser();
-            
-            // Configure analyser
-            analyser.fftSize = 32;
-            analyser.smoothingTimeConstant = 0.8;
-            
-            // Connect the audio graph
-            source.connect(analyser);
-            analyser.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            
-            // Store references
-            this.currentAudio = audio;
-            this.currentAudioContext = audioContext;
-            this.currentSource = source;
-            this.currentGainNode = gainNode;
-            this.analyser = analyser;
-            
-            // Start with full volume
-            gainNode.gain.setValueAtTime(1, audioContext.currentTime);
-            
-            // Show visualizer
-            this.visualizer.classList.add('active');
-            
-            // Play the audio
-            await audio.play();
-
-            // Start visualization
-            this.updateVisualization();
-        } catch (error) {
-            console.error(`Error playing ${house} sound:`, error);
-        }
     }
 
     updateVisualization() {
