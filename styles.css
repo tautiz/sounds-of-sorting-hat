@@ -1,0 +1,86 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: 'Arial', sans-serif;
+    background-color: #1a1a1a;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.container {
+    padding: 20px;
+    width: 100%;
+    max-width: 600px;
+}
+
+h1 {
+    text-align: center;
+    color: #ffffff;
+    margin-bottom: 30px;
+    text-shadow: 0 0 10px rgba(255,255,255,0.3);
+}
+
+.grid {
+    display: grid;
+    width: 100vw;
+    height: 100vh;
+    grid-template-columns: 50% 50%;
+    grid-template-rows: 50% 50%;
+    padding: 15px;
+}
+
+.house-btn {
+    width: 100%;
+    height: 100%;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+    overflow: hidden;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.house-btn:active {
+    transform: scale(0.98);
+}
+
+.house-btn img {
+    max-width: 80%;
+    max-height: 80%;
+    object-fit: contain;
+}
+
+.gryffindor {
+    background-color: #740001;
+}
+
+.slytherin {
+    background-color: #1a472a;
+}
+
+.ravenclaw {
+    background-color: #0e1a40;
+}
+
+.hufflepuff {
+    background-color: #ecb939;
+}
+
+/* Hover effects only on devices that support hover */
+@media (hover: hover) {
+    .house-btn:hover {
+        transform: scale(1.02);
+        z-index: 1;
+    }
+}
